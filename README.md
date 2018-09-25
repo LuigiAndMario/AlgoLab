@@ -21,3 +21,23 @@ The script stops on an error during the compilation. In case of a successful com
 The script tests the program against every test input it can find, and displays the difference with the correct input (if any).
 
 The first instance judge does **not** test the programs under any time constraints.
+
+## Folder structure
+```
+.
++---PotW
+|	+---Week x
+|	|	+---testsets
+|	|	|	|---testn.in
+|	|	|	|---testn.out
++---Week x
+|	+---exercise_name
+|	|	+---testsets
+|	|	|	|---testn.in
+|	|	|	|---testn.out
+|	|	|---exercise_name.cpp
+|	|	|---exercise_name
++---firstinstance.sh
++---.gitignore
++---README.md
+```
