@@ -5,73 +5,32 @@ int main() {
     int t; std::cin >> t;
     for (int a = 0 ; a < t ; a++) {
         int n; std::cin >> n;
-        
+
         std::vector<int> v(n);
         for (int j = 0 ; j < n ; j++) {
-            std::cin >> v.at(j);
+            std::cin >> v[j];
         }
 
-        // First approach - too slow! O(n^3)
-        /*
-        int even_pairs = 0;
-        for (int j = 0 ; j < n ; j++) {
-            for (int i = 0 ; i <= j ; i++) {
-                int sum = 0;
-                for (int k = i ; k <= j ; k++) {
-                    sum += v.at(k);
-                }
-                even_pairs += sum % 2 == 0 ? 1 : 0;
-            }
+        std::vector<int> even(n);
+        std::vector<int> odd(n);
+
+        if (v[0] == 0) {
+            even[0]++;
+        } else {
+            odd[0]++;
         }
+        int even_pairs = even[0];
 
-        std:: cout << even_pairs << std::endl;
-        */
-
-        // Second approach - too slow! O(n^2)
-        // We have that x_i + ... + x_j = (x_0 + ... + x_j) - (x_0 + ... + x_{i-1})
-        /*
-        std::vector<int> Si(0);
-        for (int i = 0 ; i < n ; i++) {
-            Si.push_back(0);
-            for (int j = 0 ; j <= i ; j++) {
-               Si.at(i) += v.at(j);
-            }
-        }
-
-        int even_pairs = 0;
-        for (int j = 0 ; j < n ; j++) {
-            for (int i = 0 ; i < j ; i++) {
-                int sum = Si.at(j) - Si.at(i);
-                even_pairs += sum % 2 == 0 ? 1 : 0;
-            }
-            even_pairs += Si.at(j) % 2 == 0 ? 1 : 0;
-        }
-
-        std::cout << even_pairs << std::endl;
-        */
-
-        // Third approach
-        std::vector<int> Si(n);
-        for (int i = 0 ; i < n ; i++) {
-            Si.at(i) = 0;
-            for (int j = 0 ; j <= i ; j++) {
-                Si.at(i) += v.at(j);
-            }
-        }
-
-        int even = 0;
-        int odd = 0;
-        for (int i = 0 ; i < n ; i++) {
-            if (Si.at(i) % 2 == 0) {
-                even++;
+        for (int i = 1 ; i < n ; i++) {
+            if (v[i] == 0) {
+                even[i] = even[i - 1] + 1;
+                odd[i] = odd[i - 1];
             } else {
-                odd++;
+                even[i] = odd[i - 1];
+                odd[i] = even[i - 1] + 1;
             }
+            even_pairs += even[i];
         }
-
-        int even_pairs = (even * (even - 1))/2;
-        even_pairs += (odd * (odd - 1))/2;
-        even_pairs += even;
 
         std::cout << even_pairs << std::endl;
     }
