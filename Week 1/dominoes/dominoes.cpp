@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <deque>
+#include <algorithm>
 
 void testcase() {
     int n; std::cin >> n;
@@ -15,7 +16,7 @@ void testcase() {
     int height_index = 1; // data_index
     int height = h[0]; // end_index
     int range = 0;
-    while (height > reaches.size()) {
+    while (((unsigned int) height) > reaches.size()) {
         range = just_pushed + height - 1;
 
         for (std::vector<int>::iterator it = h.begin() + height_index ; it != h.begin() + range ; it++) {
@@ -24,7 +25,7 @@ void testcase() {
 
         // We now look for the biggest elements in the 'reaches' deque, and get them by decreasing order.
         std::deque<int> ranked(reaches); // ranked[i] = reaches[i] + i.
-        for (int i = 0 ; i < ranked.size() ; i++) {
+        for (int i = 0 ; ((unsigned int) i) < ranked.size() ; i++) {
             ranked[i] += i;
         }
         // We get the index of the biggest element.
