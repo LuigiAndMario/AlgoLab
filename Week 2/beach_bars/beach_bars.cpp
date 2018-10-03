@@ -20,8 +20,6 @@ void testcase() {
     int start = 0;
     int end = 0;
 
-//    optimal_ranges.push_back(std::make_pair(start, end));
-
     for (int i = 0 ; i < n ; i++) {
         while (x[i] - x[start] > 200) { 
             // Moving the start index to the right as long as we are out of range.
@@ -68,7 +66,7 @@ void testcase() {
 
     std::cout << max_parasols << " " << d_min << std::endl;
     for (int i = 0 ; i < bars.size() ; i++) {
-        std::cout << bars[i] << " ";
+        std::cout << bars[i] << (i == bars.size() - 1 ? "" : " ");
     }
     std::cout << std::endl;
 }
