@@ -23,7 +23,7 @@ int main() {
             EE::Point_2 p_1(r, s);
 
             double t; std::cin >> t;
-            double u; std::cin >> u
+            double u; std::cin >> u;
             EE::Point_2 p_2(t, u);
 
             if (!collision) {
