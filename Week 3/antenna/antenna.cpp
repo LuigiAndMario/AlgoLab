@@ -18,7 +18,6 @@ int main() {
         for (int i = 0 ; i < n ; i++) {
             double x_i; std::cin >> x_i;
             double y_i; std::cin >> y_i;
-            // homes[i] = Point(x_i, y_i);
             homes_vector[i] = Point(x_i, y_i);
         }
 

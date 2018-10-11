@@ -3,7 +3,34 @@
 #include <iomanip>
 #include <cmath>
 
-double dee_pee(std::vector<double> &p, int day, int k_today, int m, int n, std::vector<std::vector<double> > *memo) {
+std::vector<std::vector<double> > memo;
+
+double non_rec(std::vector<double> &p, int k, int m, int n) {
+    if (k >= m) {
+        return 1;
+    }
+
+    memo = std::vector<std::vector<double> >(n, std::vector<double>(m, -1)); // [day, money]
+    
+    for (int i = 0 ; i < m ; i++) {
+        memo[0][i] = k; // On the first day, we start with k
+    }
+    for (int i = 0 ; i < n ; i++) {
+        memo[i][0] = k; // If we keep betting 0 after the start of the game, we keep having k
+    }
+
+    int current_fortune = k;
+
+    for (int i = 1 ; i < n ; i++) {
+        for (int j = 1 ; j <= current_fortune ; j++) {
+            // TODO
+        }
+    }
+
+    return 0;
+}
+
+double dee_pee(std::vector<double> &p, int day, int k_today, int m, int n) {
     if (k_today >= m) {
         // You done, fam!
         return 1;
@@ -15,17 +42,17 @@ double dee_pee(std::vector<double> &p, int day, int k_today, int m, int n, std::
 
     double p_today = p[day];
     int tomorrow = day + 1;
-    if (memo->at(day)[0] == -1) {
-        memo->at(day)[0] = dee_pee(p, tomorrow, k_today, m, n, memo);
+    if (memo[day][0] == -1) {
+        memo[day][0] = dee_pee(p, tomorrow, k_today, m, n);
     }
-    double max = memo->at(day)[0];
+    double max = memo[day][0];
 
     for (int i = 1 ; i <= k_today ; i++) {
-        if (memo->at(day)[i] == -1) {
-            memo->at(day)[i] = p_today * dee_pee(p, tomorrow, k_today + i, m, n, memo) +
-                (1 - p_today) * dee_pee(p, tomorrow, k_today - i, m, n, memo);
+        if (memo[day][i] == -1) {
+            memo[day][i] = p_today * dee_pee(p, tomorrow, k_today + i, m, n) +
+                (1 - p_today) * dee_pee(p, tomorrow, k_today - i, m, n);
         }
-        max = std::max(max, memo->at(day)[i]);
+        max = std::max(max, memo[day][i]);
     }
 
     return max;
@@ -66,10 +93,10 @@ void testcase() {
         std::cin >> p[i];
     }
 
-    std::vector<std::vector<double> > memo(n, std::vector<double>(m, -1));
+    memo = std::vector<std::vector<double> >(n, std::vector<double>(m, -1));
 
     std::cout << std::fixed << std::setprecision(5);
-    std::cout << dee_pee(p, 0, k, m, n, &memo) << std::endl;
+    std::cout << dee_pee(p, 0, k, m, n) << std::endl;
 }
 
 int main() {

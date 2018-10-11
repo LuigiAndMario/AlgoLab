@@ -63,7 +63,7 @@ void testcase() {
     } else {
         // Equal number of moves in moves_r and moves_b
         // moves_r % 2 == 1 -> the red meeple is last moved by Sherlock.
-        // Given that Sherlock starts playing, the red meeple will be moves before Moriarty can make the last, winning move for the black meeple.
+        // Given that Sherlock starts playing, the red meeple will be moved before Moriarty can make the last, winning move for the black meeple.
         std::cout << 1 - moves_r % 2 << std::endl;
     }
 }
