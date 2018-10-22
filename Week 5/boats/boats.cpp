@@ -2,7 +2,7 @@
 #include <vector>
 #include <algorithm>
 
-bool ring_closer(std::pair<int, int> boat_1, std::pair<int, int> boat_2) {
+bool closest_ring(std::pair<int, int> boat_1, std::pair<int, int> boat_2) {
     return boat_1.second < boat_2.second;
 }
 
@@ -16,9 +16,9 @@ void testcase() {
     }
 
     // The idea is to see the boats as tasks that need to be scheduled, with deadline p_i + l_i, arrival time p_i - l_i and execution time l_i
-    // Only there is no precedence, andwe want to minimise the number of deadline misses  instead of theri total apmlitude
+    // Only there is no precedence, and we want to minimise the number of deadline misses  instead of theri total amplitude
     std::random_shuffle(boats.begin(), boats.end());
-    std::sort(boats.begin(), boats.end(), ring_closer);
+    std::sort(boats.begin(), boats.end(), closest_ring);
 
     int boats_placed = 0;
     int end_of_line = boats[0].second - boats[0].first;
