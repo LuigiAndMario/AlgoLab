@@ -55,13 +55,13 @@ void testcase() {
     
     for (int i = 0 ; i < nb_scc ; i++) {
         int weight = eligible_for_teleportation[i].size() - 1;
-        Vertex black_hole = add_vertex(galaxy);
+        Vertex mass_relay = add_vertex(galaxy);
         for (std::set<int>::iterator it = eligible_for_teleportation[i].begin() ; it != eligible_for_teleportation[i].end() ; it++) {
             Edge e;
             bool success;
-            tie(e, success) = add_edge(black_hole, *it, galaxy);
+            tie(e, success) = add_edge(mass_relay, *it, galaxy);
             weights[e] = weight;
-            tie(e, success) = add_edge(*it, black_hole, galaxy);
+            tie(e, success) = add_edge(*it, mass_relay, galaxy);
             weights[e] = 0;
         }
         
