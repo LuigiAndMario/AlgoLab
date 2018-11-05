@@ -15,7 +15,7 @@ typedef CGAL::Quadratic_program_solution<ET> Solution;
 
 typedef CGAL::Quotient<ET> SolT;
 
-double ceil_to_double (const SolT & x) {
+double ceil_to_double (const SolT &x) {
     double a = std::ceil(CGAL::to_double(x));
     while (a < x) a++;
     while (a - 1 >= x) a--;
@@ -23,8 +23,7 @@ double ceil_to_double (const SolT & x) {
 }
 // \end{from the slides}
 
-void tescase() {
-    int p; std::cin >> p;
+void tescase(int p) {
     int a; std::cin >> a;
     int b; std::cin >> b;
 
@@ -51,8 +50,8 @@ void tescase() {
         qp.set_a(X, 2, -1); qp.set_a(Y, 2, 1); qp.set_b(2, -1); // -x + y >= -1
         qp.set_d(X, X, 2 * a); qp.set_c(Y, b); qp.set_d(Z, Z, 2); // min(ax^2 + by + z^4)
 
-        qp.set_u(X, true, 0);
-        qp.set_u(Y, true, 0);
+        qp.set_u(X, true, 0); // x <= 0
+        qp.set_u(Y, true, 0); // y <= 0
     }
 
 
@@ -68,7 +67,10 @@ void tescase() {
 }
 
 int main() {
-    int t; std::cin >> t;
-    while (t--) tescase();
+    int p; std::cin >> p;
+    while (p) {
+        tescase(p);
+        std::cin >> p;
+    }
     return 0;
 }
