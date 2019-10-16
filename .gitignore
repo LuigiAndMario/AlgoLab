@@ -8,3 +8,4 @@ Testing*
 *.cmake
 *.tcl
 *.py
+Makefile
