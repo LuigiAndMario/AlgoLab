@@ -1,0 +1,9 @@
+{
+    "files.associations": {
+        "vector": "cpp",
+        "utility": "cpp",
+        "ios": "cpp",
+        "algorithm": "cpp",
+        "ostream": "cpp"
+    }
+}

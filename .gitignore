@@ -1,0 +1,10 @@
+.DS_Store
+C++\ Introduction/
+*.pdf
+*.swp
+CMake*/
+CMake*
+Testing*
+*.cmake
+*.tcl
+*.py
