@@ -29,7 +29,7 @@ void testcase() {
         drink[i] = {c, v};
         v_max = max(v_max, v);
     }
-    int q_max = k + v_max + 1;
+    int q_max = k + v_max;
     
     memo = vector<vector<tuple<int, int> > >(n, vector<tuple<int, int> >(q_max, MEMO_BASE));
     
@@ -64,7 +64,7 @@ void testcase() {
             } else {
                 // We take one bottle of this drink
                 c_min = ci + get<0>(with);
-                d_max = get<1>(with)
+                d_max = get<1>(with);
                 if (with == memo[i - 1][j - vi]) {
                     // This is not the same drink as we took from before - we increment the number of drinks
                     d_max++;
