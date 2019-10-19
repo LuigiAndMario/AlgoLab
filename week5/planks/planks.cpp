@@ -66,8 +66,8 @@ void testcase() {
     }
     int side_of_square = perimeter / 4;
     
-    // Putting the planks in ascending order
-    sort(l.begin(), l.end());
+    // Putting the planks in descending order
+    sort(l.rbegin(), l.rend());
     
     if (n < 4 || l[0] > side_of_square) {
         // Building a square with 3 sides is impossible, and so would it with planks that are bigger than the side of the square
@@ -88,7 +88,7 @@ void testcase() {
     // We sort it, cause we'll need that later
     sort(combinations_right.begin(), combinations_right.end());
     
-    int num_squares = 0;
+    long num_squares = 0;
     // For all the combinations on the left, we try to find all the combinations on the right that make it sum up to a square
     for (auto it = combinations_left.begin() ; it != combinations_left.end() ; it++) {
         // First, we find how much is needed to make the sides of the left combination reach side_of_square
