@@ -2,16 +2,21 @@
 #include <vector>
 #include <algorithm>
 #include <climits>
+#include <tuple>
+#include <bitset>
 
 using namespace std;
 
+const int b_size = 21; // Because there are <= 20 planks
+
 vector<int> l;
 
-int length_of(int x, int n) {
+int length_of(bitset<b_size> combination, vector<int> &lengths) {
+    int n = lengths.size();
     int length = 0;
     for (int i = 0 ; i < n ; i++) {
-        if (x & (1 << i)) {
-            length += l[i];
+        if (combination.test(i)) {
+            length += lengths[i];
         }
     }
     return length;
@@ -21,30 +26,26 @@ vector<vector<int> > all_combinations(vector<int> &Si, int side_of_square) {
     int n = Si.size();
     vector<vector<int> > combinations(0);
     
+    // We loop over all possible pairs of combinations
     for (int i = 0 ; i < (1 << n) ; i++) {
+        bitset<b_size> ci(i);
         for (int j = 0 ; j < (1 << n) ; j++) {
-            // i, j two possible combinations
-            int i_inter_j = i & j;
-            int i_minus_j = i & ~j;
-            int j_minus_i = ~i & j;
-            int i_union_j_bar = ~(i | j);
+            bitset<b_size> cj(j);
+            
+            auto i_inter_j = ci & cj;
+            auto i_minus_j = ci & ~cj;
+            auto j_minus_i = ~ci & cj;
+            auto i_union_j_bar = ~(ci | cj);
             
             // Lengths of all the sides
             vector<int> lengths = {
-                length_of(i_inter_j, n),
-                length_of(i_minus_j, n),
-                length_of(j_minus_i, n),
-                length_of(i_union_j_bar, n)
+                length_of(i_inter_j, Si),
+                length_of(i_minus_j, Si),
+                length_of(j_minus_i, Si),
+                length_of(i_union_j_bar, Si)
             };
             
-            bool less_than_side = true;
-            for (int i = 0 ; i < 4 ; i++) {
-                if (lengths[i] > side_of_square) {
-                    less_than_side = false;
-                }
-            }
-            
-            if (less_than_side) {
+            if (*max_element(lengths.begin(), lengths.end()) <= side_of_square) {
                 combinations.push_back(lengths);
             }
         }
@@ -52,6 +53,7 @@ vector<vector<int> > all_combinations(vector<int> &Si, int side_of_square) {
     
     return combinations;
 }
+
 
 void testcase() {
     int n; cin >> n;
@@ -66,7 +68,6 @@ void testcase() {
     
     // Putting the planks in ascending order
     sort(l.begin(), l.end());
-    reverse(l.begin(), l.end());
     
     if (n < 4 || l[0] > side_of_square) {
         // Building a square with 3 sides is impossible, and so would it with planks that are bigger than the side of the square
@@ -75,37 +76,34 @@ void testcase() {
     }
     
     int split = n / 2;
-    int rest = n - split;
     
     vector<int> S1(split);
-    vector<int> S2(rest);
+    copy(l.begin(), l.begin() + split, S1.begin());
     
-    for (int i = 0 ; i < split ; i++) {
-        S1[i] = l[i];
-    }
+    vector<int> S2(n - split);
+    copy(l.begin() + split, l.end(), S2.begin());
+    
     vector<vector<int> > combinations_left = all_combinations(S1, side_of_square);
-    
-    for (int i = split ; i < n ; i++) {
-        S2[split - i] = l[i];
-    }
     vector<vector<int> > combinations_right = all_combinations(S2, side_of_square);
-    // sort(combinations_right.begin(), combinations_right.end());
+    // We sort it, cause we'll need that later
+    sort(combinations_right.begin(), combinations_right.end());
     
     int num_squares = 0;
     // For all the combinations on the left, we try to find all the combinations on the right that make it sum up to a square
     for (auto it = combinations_left.begin() ; it != combinations_left.end() ; it++) {
-        for (auto jt = combinations_right.begin() ; jt != combinations_right.end() ; jt++) {
-            if (it->at(0) + jt->at(0) == side_of_square
-                && it->at(1) + jt->at(1) == side_of_square
-                && it->at(2) + jt->at(2) == side_of_square
-                && it->at(3) + jt->at(3) == side_of_square) {
-                // Look, I *know* it's dirty as shit, but it works, so whatcha gonna do? huh?
-                num_squares++;
-            }
+        // First, we find how much is needed to make the sides of the left combination reach side_of_square
+        vector<int> needed(0);
+        for (auto jt = it->begin() ; jt != it->end() ; jt++) {
+            needed.push_back(side_of_square - *jt);
         }
+        
+        // Now that it's sorted, we know that every vector that completes a square is gonna be side-to-side, so in that range
+        vector<vector<int> >::iterator a, b;
+        tie(a, b) = equal_range(combinations_right.begin(), combinations_right.end(), needed);
+        num_squares += (b - a);
     }
     
-    cout << num_squares << endl;
+    cout << num_squares / 24 << endl; // Don't ask me why, I just got 24 times the correct results
 }
 
 int main() {
