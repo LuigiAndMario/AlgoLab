@@ -1,5 +1,6 @@
 *
+!*/
 !*.cpp
-!*.py
 !*.in
 !*.out
+CMakeFiles
