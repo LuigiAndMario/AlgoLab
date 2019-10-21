@@ -15,7 +15,7 @@ typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS,
 typedef boost::property_map<weighted_graph, boost::edge_weight_t>::type weight_map;
 typedef boost::graph_traits<weighted_graph>::edge_descriptor            edge_desc;
 typedef boost::graph_traits<weighted_graph>::vertex_descriptor          vertex_desc;
-typedef boost::graph_traits<weighted_graph>::edge_iterator                       edge_it;
+typedef boost::graph_traits<weighted_graph>::edge_iterator              edge_it;
 
 void testcase() {
 	int n; cin >> n;
@@ -40,32 +40,34 @@ void testcase() {
 		weights[ed] = c;
 	}
 
-	// every two planets in the teleportation network are, let's say, "teleportable" iff they are already reachable without the network (in both ways)
-
+	// Every two planets in the teleportation network are, let's say, "teleportable", if they are already reachable without the network (in both ways)
+    // In other words, that means they must be in the same SCC
 	// scc_map[i]: index of SCC containing i-th vertex
 	std::vector<int> scc_map(n);  // exterior property map
 	// nscc: total number of SCCs
 	int nscc = boost::strong_components(G, boost::make_iterator_property_map(scc_map.begin(), boost::get(boost::vertex_index, G)));
 
-	// For the shortest paths, it's gonna be a mess to add too many edges
-	// So instead we add a new vertex (think mass relay) and link every "teleportable" planets to this edge, with cost 0
-	vector<vector<int> > teleportation_networks(nscc);
-	for (int i = 0 ; i < T ; i++) {
-		teleportation_networks[scc_map[t[i]]].push_back(t[i]);
-	}
-
-	for (int i = 0 ; i < nscc ; i++) {
-		int cost = teleportation_networks[i].size() - 1;
-		vertex_desc mass_relay = boost::add_vertex(G);
-
-		for (auto it = teleportation_networks[i].begin() ; it != teleportation_networks[i].end() ; it++) {
-			ed = boost::add_edge(*it, mass_relay, G).first;
-			weights[ed] = 0;
-
-			ed = boost::add_edge(mass_relay, *it, G).first;
-			weights[ed] = cost;
-		}
-	}
+    // Finding the costs of teleportation
+    vector<int> teleportation_costs(nscc, 0);
+    for (int i = 0 ; i < T ; i++) {
+        int planet_iq = t[i]; // The planet in question
+        int scc_iq = scc_map[planet_iq]; // The scc in question
+        teleportation_costs[scc_iq]++;
+    }
+    
+    // For every planet in the teleportation network, we connect it to its corresponding mass relay
+    for (int i = 0 ; i < T ; i++) {
+        int planet_iq = t[i]; // The planet in question
+        int scc_iq = scc_map[planet_iq]; // The scc in question
+        int mass_relay = n + scc_iq; // We put all the mass relays after all the n planets
+        int cost = teleportation_costs[scc_iq] - 1;
+        
+        ed = boost::add_edge(planet_iq, mass_relay, G).first;
+        weights[ed] = cost;
+        
+        ed = boost::add_edge(mass_relay, planet_iq, G).first;
+        weights[ed] = 0;
+    }
 
 	// We also need to keep track of the new number of vertices
 	int n_with_teleportation = n + nscc;
