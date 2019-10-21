@@ -1,12 +1,5 @@
-.DS_Store
-C++\ Introduction/
-*.pdf
-*.swp
-CMake*/
-CMake*
-Testing*
-*.cmake
-*.tcl
-*.py
-Makefile
-algolab.sh
+*
+!*.cpp
+!*.py
+!*.in
+!*.out
