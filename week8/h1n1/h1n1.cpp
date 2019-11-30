@@ -1,44 +1,32 @@
 #include <iostream>
 #include <vector>
 #include <map>
+#include <algorithm>
+#include <climits>
 
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Delaunay_triangulation_2.h>
+#include <CGAL/Triangulation_face_base_with_info_2.h>
+
+#include <boost/pending/disjoint_sets.hpp>
 
 typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
-typedef CGAL::Delaunay_triangulation_2<K>  Triangulation;
+
+typedef CGAL::Triangulation_vertex_base_2<K> Vb;
+typedef CGAL::Triangulation_face_base_with_info_2<int,K> Fb;
+typedef CGAL::Triangulation_data_structure_2<Vb,Fb> Tds;
+typedef CGAL::Delaunay_triangulation_2<K,Tds> Triangulation;
+
+typedef Triangulation::Edge_iterator  Edge_iterator;
+typedef Triangulation::All_faces_iterator Face_iterator;
 typedef Triangulation::Face_handle Face;
+typedef Triangulation::Vertex_handle Vertex;
 
 typedef K::Point_2 Point;
 
+typedef boost::disjoint_sets_with_storage<> ds; // disjoint set
+
 using namespace std;
-
-map<Face, K::FT> max_allowed;
-map<Face, bool> visited;
-
-void dfs(Triangulation &t, Face &current) {
-    // Marking this face as visited
-    visited[current] = true;
-    if (t.is_infinite(current)) {
-        // Escaped succesfully
-        return;
-    }
-    
-    K::FT val = INT_MIN;
-    for (int i = 0 ; i < 3 ; i++) {
-        auto di = t.segment(current, i).squared_length();
-        Face ni = current->neighbor(i);
-        dfs(t, ni);
-        
-        if (visited[ni]) {
-            val = max(val, min(di, max_allowed[ni]));
-        } else {
-            val = max(val, di);
-        }
-    }
-    
-    visited[current] = val;
-}
 
 void testcase(int n) {
     vector<Point> infected(n);
@@ -51,36 +39,28 @@ void testcase(int n) {
     Triangulation t;
     t.insert(infected.begin(), infected.end());
     
-    max_allowed = map<Face, K::FT>(); // Maximum distance allowed to escape from that face
-    for (auto it = t.all_faces_begin() ; it != t.all_faces_end() ; it++) {
-        max_allowed[it] = INT_MIN;
-    }
-    
-    visited = map<Face, bool>(); // Keeping track of what vertices are already visited
-    for (auto it = t.all_faces_begin() ; it != t.all_faces_end() ; it++) {
-        // When on an infinite face, we already escaped
-        visited[it] = false;
-    }
-    
-    Face f = t.finite_faces_begin();
-    dfs(t, f);
-    
-    int m; cin >> m;
-    for (int i = 0 ; i < m ; i++) {
-        int x; cin >> x;
-        int y; cin >> y;
-        K::FT d; cin >> d;
-        Point p(x, y);
-        
-        Face start = t.locate(p);
-        
-        if (CGAL::squared_distance(p, t.nearest_vertex(p)->point()) < d) {
-            // If i starts out too close to an infected person, they can't escape
-            cout << "n";
-        } else {
-            cout << (max_allowed[start] >= (4 * d) ? "y" : "n");
+    int num_faces = 0;
+    vector<Face> to_visit;
+    for (auto it = t.finite_faces_begin() ; it != t.finite_faces_end() ; it++) {
+        // We start by doing the trivial case - if a face has an infinite neighbour, it can escape there at no cost
+        int  max_allowed = 0;
+        for (int i = 0 ; i < 3 ; i++) {
+            if (t.is_infinite(it->neighbor(i))) {
+                int allowed = CGAL::squared_distance(it->vertex((i + 1) % 3)->point(), it->vertex((i + 2) % 3)->point());
+                max_allowed = max(max_allowed, allowed);
+            }
         }
+        
+        if (max_allowed != 0) {
+            it->info() = max_allowed;
+            to_visit.push_back(it);
+        }
+        
+        num_faces++;
     }
+    
+    ds united(num_faces);
+    // TODO: Start from every face next to an infinite face
     
     cout << endl;
 }
