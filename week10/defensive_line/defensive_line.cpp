@@ -1,60 +1,58 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
+#include <climits>
 
 using namespace std;
 
 vector<int> v;
-vector<pair<int, int> > intervals;
+vector<int> sums; // [i] -> j, where the sum of the strengths from i to j is k (-1 if there is no such j)
+vector<vector<int>> memo; // [attackers_left][from] -> value
 
-vector<vector<int> > memo; // prev x attackers_left -> value
-
-int strategy(int value, int cur, int prev, int attackers_left, bool added_stuff) {
-    //
+int strategy(int from, int attackers_left, int n) {
     // Corner cases
-    //
-    if (attackers_left == 0) {
-        // We used all of our attackers
-        return value;
-    }
-    
-    if (cur == intervals.size()) {
-        // Reached the last interval, and there are fewer intervals than attackers -> some attackers slack off -> fail
+    if (from == n) {
+        // Empty interval -> we reached the end without using all the attackers -> fail
         return -1;
     }
     
-    //
     // Already computed
-    //
-    if (memo[prev][attackers_left] != -2) {
-        return memo[prev][attackers_left];
+    if (memo[attackers_left][from] != -2) {
+        return memo[attackers_left][from];
     }
     
-    //
+    // One single attacker left
+    if (attackers_left == 1) {
+        if (from == n - 1) {
+            // Only one player left to attack - we can either attack him, or not
+            return sums[from] == -1 ? -1 : 1;
+        }
+        
+        int val = sums[from] - from + 1;
+        int without = strategy(from + 1, attackers_left, n);
+        memo[attackers_left][from] = max(val, without);
+        return memo[attackers_left][from];
+    }
+    
     // Actual algorithm
-    //
-    pair<int, int> interval_cur = intervals[cur];
-    int a_cur = interval_cur.first + 1;
-    int b_cur = interval_cur.second + 1;
-    int v_cur = b_cur - a_cur + 1;
-    
-    pair<int, int> interval_prev = intervals[prev];
-    int b_prev = interval_prev.second + 1;
-    
-    if (!added_stuff || a_cur > b_prev) {
-        // Option 1: We have not added anything just yet (so prev = 0)
-        // Option 2: No overlap between this and the previous interval
-        // -> We can add it (prev <- cur, attackers - 1) or leave it (prev <- prev), and move on to the next interval (cur + 1)
-        int with = strategy(value + v_cur, cur + 1, cur, attackers_left - 1, true);
-        int without = strategy(value, cur + 1, prev, attackers_left, added_stuff);
-        memo[prev][attackers_left] = max(with, without);
-    } else {
-        // We cannot add this interval - we move onto the next
-        int without = strategy(value, cur + 1, prev, attackers_left, added_stuff);
-        memo[prev][attackers_left] = without;
+    int best = -1;
+    for (int i = from ; i < n ; i++) {
+        // We try to start at every attacker starting from `from`
+        if (sums[i] == -1) {
+            // No interval starting here
+            continue;
+        }
+        
+        int val = sums[i] - i + 1; // The number of players from i to j
+        int with = strategy(sums[i] + 1, attackers_left - 1, n);
+            
+        if (with != -1) { // Otherwise, we can't attack this interval
+            best = max(best, val + with);
+        }
     }
     
-    return memo[prev][attackers_left];
+    memo[attackers_left][from] = best;
+    return best;
 }
 
 void testcase() {
@@ -67,50 +65,39 @@ void testcase() {
         cin >> v[i]; // Defense value of ith defender
     }
     
-    //
-    // Computing all the intervals of defenders that we can attack (sliding window)
-    //
-    intervals = vector<pair<int, int> >(0);
+    // Precomputing the intervals
+    sums = vector<int>(n, -1);
     int a = 0; int b = 0;
     int value = v[a];
+    int intervals = 0;
     
     while (b != n) { // As long as there still are defenders to attack
         if (value == k) {
-            // Found an interval of length k - we add it
-            intervals.push_back(make_pair(a, b));
-            // Then we expand to the left
-            value -= v[a];
-            a++;
-            if (a > b) { // And expand to the right if this was a one-defender interval
-                b++;
-                value += v[b];
-            }
-        } else if (value > k) {
-            // Too much defense power - we expand to the left
-            value -= v[a];
-            a++;
-            if (a > b) { // And expand to the right if this was a one-defender interval
-                b++;
-                value += v[b];
-            }
-        } else {
-            // Not enough defense power - we expand to the right
+            // Found an interval of value k from a to b
+            sums[a] = b;
+            intervals++;
+        }
+        
+        if (value <= k) {
+            // Expand to the right
             b++;
             value += v[b];
+        } else {
+            // Shrink to the left
+            value -= v[a];
+            a++;
         }
     }
     
-    //
     // Computing the best solution (DP)
-    //
-    if (intervals.size() < m) {
+    if (intervals < m) {
         // There are fewer intervals than attackers -> some attackers slack off -> fail
         cout << "fail" << endl;
         return;
     }
     
-    memo = vector<vector<int> >(intervals.size(), vector<int>(m + 1, -2));
-    value = strategy(0, 0, 0, m, false);
+    memo = vector<vector<int>>(m + 1, vector<int>(n, -2));
+    value = strategy(0, m, n);
     if (value == -1) {
         cout << "fail" << endl;
     } else {
