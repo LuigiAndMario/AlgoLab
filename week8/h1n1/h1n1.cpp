@@ -1,6 +1,5 @@
 #include <iostream>
 #include <vector>
-#include <map>
 #include <algorithm>
 #include <climits>
 
@@ -23,10 +22,38 @@ typedef Triangulation::Face_handle Face;
 typedef Triangulation::Vertex_handle Vertex;
 
 typedef K::Point_2 Point;
-
-typedef boost::disjoint_sets_with_storage<> ds; // disjoint set
+typedef K::Segment_2 Segment;
 
 using namespace std;
+
+char escape(Triangulation &t, Face &start, K::FT &d, int i) {
+    vector<Face> to_visit(0);
+    to_visit.push_back(start);
+    
+    while (!to_visit.empty()) {
+        Face f = to_visit.back();
+        to_visit.pop_back();
+        
+        if (f->info() < i) {
+            // Face not visited yet
+            f->info() = i;
+            
+            if (t.is_infinite(f)) {
+                // Succesfully escaped
+                return 'y';
+            }
+            
+            for (int j = 0 ; j < 3 ; j++) {
+                Segment edge = t.segment(make_pair(f, j));
+                if (edge.squared_length() >= 4 * d) {
+                    to_visit.push_back(f->neighbor(j));
+                }
+            }
+        }
+    }
+    
+    return 'n';
+}
 
 void testcase(int n) {
     vector<Point> infected(n);
@@ -39,28 +66,25 @@ void testcase(int n) {
     Triangulation t;
     t.insert(infected.begin(), infected.end());
     
-    int num_faces = 0;
-    vector<Face> to_visit;
-    for (auto it = t.finite_faces_begin() ; it != t.finite_faces_end() ; it++) {
-        // We start by doing the trivial case - if a face has an infinite neighbour, it can escape there at no cost
-        int  max_allowed = 0;
-        for (int i = 0 ; i < 3 ; i++) {
-            if (t.is_infinite(it->neighbor(i))) {
-                int allowed = CGAL::squared_distance(it->vertex((i + 1) % 3)->point(), it->vertex((i + 2) % 3)->point());
-                max_allowed = max(max_allowed, allowed);
-            }
-        }
-        
-        if (max_allowed != 0) {
-            it->info() = max_allowed;
-            to_visit.push_back(it);
-        }
-        
-        num_faces++;
+    // Setting up DFS
+    for (auto it = t.all_faces_begin() ; it != t.all_faces_end() ; it++) {
+        it->info() = -1;
     }
     
-    ds united(num_faces);
-    // TODO: Start from every face next to an infinite face
+    int m; cin >> m;
+    for (int i = 0 ; i < m ; i++) {
+        K::FT x; cin >> x;
+        K::FT y; cin >> y;
+        K::FT d; cin >> d;
+        
+        Point p(x, y);
+        if (CGAL::squared_distance(p, t.nearest_vertex(p)->point()) < d) {
+            cout << "n";
+        } else {
+            Face start = t.locate(p);
+            cout << escape(t, start, d, i);
+        }
+    }
     
     cout << endl;
 }
