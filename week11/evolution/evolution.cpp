@@ -2,37 +2,46 @@
 #include <vector>
 #include <string>
 #include <map>
+#include <algorithm>
 
 using namespace std;
 
 vector<string> s;
 vector<int> a;
 map<string, int> as_int;
-vector<int> parent_of;
+vector<vector<int>> children_of;
+vector<vector<pair<int, int>>> queries;
+vector<int> path;
+vector<int> result;
 
-// Actual query answering
-void query(int sp, int b) {
-    int cur = sp;
-    int parent = parent_of[cur];
+int bs(int b) {
+    int bottom = -1;
+    int top = path.size() - 1;
     
-    if (parent == -1 || a[parent] > b) {
-        // Ccur is LUCA, or the direct parent itself is too old.
-        cout << s[sp] << " ";
-        return;
-    }
-    
-    while (a[parent] <= b) {
-        cur = parent;
-        parent = parent_of[parent];
+    while (bottom < top - 1) {
+        int mid = (bottom + top) / 2;
         
-        if (parent == -1) {
-            // cur is LUCA
-            cout << s[cur] << " ";
-            return;
+        if (a[path[mid]] <= b) {
+            top = mid;
+        } else {
+            bottom = mid;
         }
     }
     
-    cout << s[cur] << " ";
+    return path[top];
+}
+
+void dfs(int cur) {
+    for (auto it = queries[cur].begin() ; it != queries[cur].end() ; it++) {
+        result[it->second] = bs(it->first);
+    }
+    
+    for (auto it = children_of[cur].begin() ; it != children_of[cur].end() ; it++) {
+        path.push_back(*it);
+        dfs(*it);
+    }
+    
+    path.pop_back();
 }
 
 // Just the preprocessing
@@ -51,21 +60,34 @@ void testcase() {
         as_int[s[i]] = i; // inverse of s (s[as_int[x]] = x)
     }
     
-    parent_of = vector<int>(n, -1); // Every species has one and only parent
+    children_of = vector<vector<int>>(n);
     for (int i = 0 ; i < n - 1 ; i++) {
         string s; cin >> s; // child
         int child = as_int[s];
         string p; cin >> p; // parent
         int parent = as_int[p];
         
-        parent_of[child] = parent;
+        children_of[parent].push_back(child);
     }
     
+    queries = vector<vector<pair<int, int>>>(n);
     for (int i = 0 ; i < q ; i++) {
         string s; cin >> s; // Species
+        int species = as_int[s];
         int b; cin >> b; // Max age
         
-        query(as_int[s], b);
+        queries[species].push_back(make_pair(b, i));
+    }
+    
+    path = vector<int>(0);
+    int root = max_element(a.begin(), a.end()) - a.begin();
+    path.push_back(root);
+    result = vector<int>(q);
+    
+    dfs(root);
+    
+    for (int i = 0 ; i < q ; i++) {
+        cout << s[result[i]] << " ";
     }
     cout << endl;
 }
