@@ -1,11 +1,10 @@
 // Includes
 // ========
-// STL includes
 #include <iostream>
 #include <vector>
+#include <climits>
+#include <map>
 #include <set>
-#include <algorithm>
-
 // BGL includes
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/cycle_canceling.hpp>
@@ -45,87 +44,94 @@ public:
     }
 };
 
+
+
 using namespace std;
 
-const long MAX_PROFIT = 100;
-const long MAX_CARS = 100;
-
 void testcase() {
-    int N; cin >> N; // # bookings
-    int S; cin >> S; // # stations
+    int n; cin >> n;
+    int s; cin >> s;
     
-    vector<int> l(S);
-    for (int i = 0 ; i < S ; i++) {
+    const int MAX_TIME = 100000;
+    const int MAX_PROFIT = 100;
+    
+    vector<int> l(s);
+    for (int i = 0 ; i < s ; i++) {
         cin >> l[i];
     }
     
-    vector<int> s(N); // From
-    vector<int> t(N); // To
-    vector<int> d(N); // Departure time
-    vector<int> a(N); // Arrival time
-    vector<int> p(N); // Profit
-    vector<set<int>> useful_times_for(S);
-    int latest_arrival = -1;
-    for (int i = 0 ; i < N ; i++) {
-        cin >> s[i]; s[i]--;
-        cin >> t[i]; t[i]--;
-        cin >> d[i];
-        cin >> a[i];
-        cin >> p[i];
-        
-        useful_times_for[s[i]].insert(d[i]); // Need a node fot the departure time at the departure station
-        useful_times_for[t[i]].insert(a[i]); // Need a node fot the arrival time at the arrival station
-        
-        latest_arrival = max(latest_arrival, a[i]);
+    
+    vector<set<int>> times(s);
+    for (int i = 0 ; i < s ; i++) {
+        times[i].insert(0);
+        times[i].insert(MAX_TIME);
     }
     
-    // First 3 testsets assumptions
-    // t <= 10'000, time % 30 = 0 -> total of 10'000 / 30 = 334 timesteps
-    int timesteps = 334;
-    int nodes = timesteps * S;
-    graph G(nodes + 2);
+    vector<int> from(n), to(n), d(n), a(n), p(n);
+    for (int i = 0 ; i < n ; i++) {
+        cin >> from[i] >> to[i] >> d[i] >> a[i] >> p[i];
+        from[i]--;
+        to[i]--;
+        times[from[i]].insert(d[i]);
+        times[to[i]].insert(a[i]);
+    }
+    
+    // Mapping every station to its relevant times
+    vector<map<int, int>> times_at(s);
+    vector<int> offset_to(s + 1, 0);
+    for (int i = 0 ; i < s ; i++) {
+        int last_added = 0;
+        for (int t: times[i]) {
+            times_at[i][t] = last_added++;
+        }
+        
+        offset_to[i + 1] = offset_to[i] + last_added;
+    }
+    
+    int num_vertices = offset_to[s];
+    
+    graph G(num_vertices + 2);
     edge_adder adder(G);
+    const int src = num_vertices;
+    const int sink = num_vertices + 1;
     
-    const int src = nodes;
-    const int sink = nodes + 1;
-    
-    // Source to the first timeslot
-    for (int i = 0 ; i < S ; i++) {
-        adder.add_edge(src, i, l[i], 0);
-    }
-    
-    // Previous to next timeslot
-    for (int i = 0 ; i < S ; i++) {
-        for (int j = 1 ; j < timesteps ; j++) {
-            int offset_prev = ((j - 1) * S);
-            int offset_cur = j * S;
-            adder.add_edge(offset_prev + i, offset_cur + i, MAX_CARS, 0);
+    for (int i = 0 ; i < s ; i++) {
+        adder.add_edge(src, offset_to[i], l[i], 0);
+        adder.add_edge(offset_to[i + 1] - 1, sink, INT_MAX, 0);
+        
+        int cur = 0;
+        int prev_time;
+        for (auto t: times[i]) {
+            if (cur != 0) {
+                adder.add_edge(offset_to[i] + cur - 1, offset_to[i] + cur, INT_MAX, MAX_PROFIT * (t - prev_time));
+            }
+            cur++;
+            prev_time = t;
         }
     }
     
-    // Actual bookings
-    for (int i = 0 ; i < N ; i++) {
-        int from = ((d[i] / 30) * S) + s[i];
-        int to = ((a[i] / 30) * S) + t[i];
-        adder.add_edge(from, to, 1, -p[i]);
+    for (int i = 0 ; i < n ; i++) {
+        // Compiler is fucking stupid and won't accept anything without these extra variables
+        int fromi = from[i];
+        int from = offset_to[fromi] + (int) times_at[fromi][d[i]];
+        int toi = to[i];
+        auto lol1 = times_at[toi];
+        auto lol2 = lol1[a[i]];
+        int to = (int) offset_to[toi] + lol2;
+        
+        adder.add_edge(from, to, 1, MAX_PROFIT * (a[i] - d[i]) - p[i]);
     }
     
-    // Last timeslot to sink
-    for (int i = 0 ; i < S ; i++) {
-        adder.add_edge(((timesteps - 1) * S) + i, sink, MAX_CARS, 0);
-    }
+    int flow = boost::push_relabel_max_flow(G, src, sink);
+    boost::successive_shortest_path_nonnegative_weights(G, src, sink);
+    int cost = boost::find_flow_cost(G);
     
-    long flow = boost::push_relabel_max_flow(G, src, sink);
-    boost::cycle_canceling(G);
-    long cost = boost::find_flow_cost(G);
-    cout << -cost << endl;
+    cout << MAX_PROFIT * MAX_TIME * flow - cost << endl;
 }
 
 int main() {
     ios::sync_with_stdio(false);
     int t; cin >> t;
-    while (t--) {
-        testcase();
-    }
+    while (t--) testcase();
     return 0;
 }
