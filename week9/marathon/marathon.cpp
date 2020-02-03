@@ -3,7 +3,7 @@
 #include <iostream>
 #include <vector>
 #include <climits>
-#include <map>
+#include <algorithm>
 // BGL includes
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/cycle_canceling.hpp>
@@ -15,16 +15,20 @@
 // Graph Type with nested interior edge properties for Cost Flow Algorithms
 typedef boost::adjacency_list_traits<boost::vecS, boost::vecS, boost::directedS> traits;
 typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS, boost::no_property,
-    boost::property<boost::edge_capacity_t, long,
-        boost::property<boost::edge_residual_capacity_t, long,
-            boost::property<boost::edge_reverse_t, traits::edge_descriptor,
-                boost::property <boost::edge_weight_t, long> > > > > graph; // new! weightmap corresponds to costs
+boost::property<boost::edge_capacity_t, long,
+boost::property<boost::edge_residual_capacity_t, long,
+boost::property<boost::edge_reverse_t, traits::edge_descriptor,
+boost::property <boost::edge_weight_t, long> > > > > graph; // new! weightmap corresponds to costs
 
+typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS, boost::no_property,
+boost::property<boost::edge_capacity_t, long,
+boost::property<boost::edge_residual_capacity_t, long,
+boost::property<boost::edge_reverse_t, traits::edge_descriptor,
+boost::property <boost::edge_weight_t, long> > > > > undirected_graph; // new! weightmap corresponds to costs
 
-typedef boost::property_map<graph, boost::edge_weight_t>::type  weight_map;
+typedef boost::graph_traits<undirected_graph>::edge_descriptor  undirected_edge_desc;
 typedef boost::graph_traits<graph>::edge_descriptor             edge_desc;
 typedef boost::graph_traits<graph>::out_edge_iterator           out_edge_it; // Iterator
-typedef boost::graph_traits<graph>::vertex_descriptor           vertex_desc;
 
 // Custom edge adder class
 class edge_adder {
@@ -49,63 +53,91 @@ public:
 
 using namespace std;
 
-void testcase() {
-    int n; cin >> n; // # intersections
-    int m; cin >> m; // # streets
-    int s; cin >> s; // Start index -> source
-    int f; cin >> f; // Finishing index -> sink
-    
-    // Building the *graph* of the city
-    graph G(n);
-    weight_map weights = boost::get(boost::edge_weight, G);
-    map<edge_desc, int> capacity;
-    
+double find(vector<int> &a, vector<int> &b, vector<int> &c, vector<int> &d, vector<int> &dist_map, int mid, int s, int f, int n, int m) {
+    graph G(n + 1);
+    const int src = n;
+    edge_adder adder(G);
     for (int i = 0 ; i < m ; i++) {
-        int a; cin >> a; // From
-        int b; cin >> b; // To
-        int c; cin >> c; // Width (how many runners can run here) -> capacity
-        int d; cin >> d; // Length -> cost
-        
-        if (a != b) {
-            edge_desc e;
-            e = boost::add_edge(a, b, G).first;
-            capacity[e] = c;
-            weights[e] = d;
+        if (dist_map[a[i]] < dist_map[b[i]]) {
+            adder.add_edge(a[i], b[i], c[i], d[i]);
+        } else {
+            adder.add_edge(b[i], a[i], c[i], d[i]);
         }
     }
     
-    // Assumption for testset 2: The shortest path is unique
+    adder.add_edge(src, s, mid, 0);
+    
+    double flow = boost::push_relabel_max_flow(G, src, f);
+    boost::successive_shortest_path_nonnegative_weights(G, src, f);
+    double cost = boost::find_flow_cost(G);
+    
+    return cost / flow > dist_map[f] ? -1 : cost / flow;
+}
+
+void testcase() {
+    int n; cin >> n; // # nodes
+    int m; cin >> m; // # edges
+    int s; cin >> s; // start
+    int f; cin >> f; // end
+    
+    vector<int> a(m), b(m), c(m), d(m);
+    for (int i = 0 ; i < m ; i++) {
+        cin >> a[i] >> b[i] >> c[i] >> d[i];
+    }
+    
+    undirected_graph Gu(n);
+    auto weights = boost::get(boost::edge_weight, Gu);
+    undirected_edge_desc ed;
+    for (int i = 0 ; i < m ; i++) {
+        ed = boost::add_edge(a[i], b[i], Gu).first;
+        weights[ed] = d[i];
+    }
+    
     std::vector<int> dist_map(n);
-    std::vector<vertex_desc> pred_map(n);
-    boost::dijkstra_shortest_paths(G, s, boost::distance_map(boost::make_iterator_property_map(
-        dist_map.begin(), boost::get(boost::vertex_index, G))) /* dot! */ .predecessor_map(boost::make_iterator_property_map( pred_map.begin(), boost::get(boost::vertex_index, G))));
+    boost::dijkstra_shortest_paths(Gu, s,
+                                   boost::distance_map(boost::make_iterator_property_map(
+                                                                                         dist_map.begin(), boost::get(boost::vertex_index, Gu))));
     
-    // Building the *flow network* of the city
-    graph G_flow(n);
-    edge_adder adder(G_flow);
-    
-    // Adding all the edges in the shortest path to the flow network
-    for (int i = 0 ; i < pred_map.size() ; i++) {
-        int prev = pred_map[i];
-        if (i != prev) {
-            edge_desc e = boost::edge(prev, i, G).first;
-            adder.add_edge(prev, i, capacity[e], weights[e]);
-            adder.add_edge(i, prev, capacity[e], weights[e]); // Because every street is 2-way
+    graph Gmax(n);
+    edge_adder adder(Gmax);
+    for (int i = 0 ; i < m ; i++) {
+        if (dist_map[a[i]] < dist_map[b[i]]) {
+            adder.add_edge(a[i], b[i], c[i], d[i]);
+        } else {
+            adder.add_edge(b[i], a[i], c[i], d[i]);
         }
     }
     
-    int flow = boost::push_relabel_max_flow(G_flow, s, f);
-    boost::successive_shortest_path_nonnegative_weights(G_flow, s, f);
-    int cost = boost::find_flow_cost(G_flow);
+    int bottom = 0;
+    int top = boost::push_relabel_max_flow(Gmax, s, f);
+    int best;
+    while (true) {
+        if (bottom == top) {
+            best = bottom;
+            break;
+        }
+        if (bottom == top - 1) {
+            int with_bottom = find(a, b, c, d, dist_map, bottom, s, f, n, m);
+            int with_top = find(a, b, c, d, dist_map, top, s, f, n, m);
+            best = max(with_bottom, with_top) == with_top ? top : bottom;
+            break;
+        }
+        
+        int mid = (bottom + top) / 2;
+        double res = find(a, b, c, d, dist_map, mid, s, f, n, m);
+        if (res == -1) {
+            top = mid - 1;
+        } else {
+            bottom = mid;
+        }
+    }
     
-    cout << flow << endl;
+    cout << best << endl;
 }
 
 int main() {
     ios::sync_with_stdio(false);
     int t; cin >> t;
-    while (t--) {
-        testcase();
-    }
+    while (t--) testcase();
     return 0;
 }
