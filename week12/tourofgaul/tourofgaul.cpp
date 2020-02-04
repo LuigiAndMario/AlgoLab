@@ -79,10 +79,6 @@ void testcase() {
             adder.add_edge(i, sink, c_prev - ci, MAX_WEIGHT * (n - 1 - i));
         }
         
-        if (i == n - 1) {
-            // Last node - we send all to sink
-            adder.add_edge(i, sink, c_prev, 0);
-        }
 
         c_prev = ci;
     }
