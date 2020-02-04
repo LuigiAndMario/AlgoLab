@@ -44,6 +44,9 @@ public:
     }
 };
 
+typedef struct booking {
+    int s, t, d, a, p;
+} booking;
 
 
 using namespace std;
@@ -67,13 +70,20 @@ void testcase() {
         times[i].insert(MAX_TIME);
     }
     
-    vector<int> from(n), to(n), d(n), a(n), p(n);
+    vector<booking> bookings(n);
     for (int i = 0 ; i < n ; i++) {
-        cin >> from[i] >> to[i] >> d[i] >> a[i] >> p[i];
-        from[i]--;
-        to[i]--;
-        times[from[i]].insert(d[i]);
-        times[to[i]].insert(a[i]);
+        int s, t, d, a, p;
+        cin >> s >> t >> d >> a >> p;
+        s--;
+        t--;
+        times[s].insert(d);
+        times[t].insert(a);
+        
+        bookings[i].s = s;
+        bookings[i].t = t;
+        bookings[i].d = d;
+        bookings[i].a = a;
+        bookings[i].p = p;
     }
     
     // Mapping every station to its relevant times
@@ -92,6 +102,9 @@ void testcase() {
     
     graph G(num_vertices + 2);
     edge_adder adder(G);
+    auto c_map = boost::get(boost::edge_capacity, G);
+    auto r_map = boost::get(boost::edge_reverse, G);
+    auto rc_map = boost::get(boost::edge_residual_capacity, G);
     const int src = num_vertices;
     const int sink = num_vertices + 1;
     
@@ -103,7 +116,7 @@ void testcase() {
         int prev_time;
         for (auto t: times[i]) {
             if (cur != 0) {
-                adder.add_edge(offset_to[i] + cur - 1, offset_to[i] + cur, INT_MAX, MAX_PROFIT * (t - prev_time));
+                adder.add_edge(offset_to[i] + cur - 1, offset_to[i] + cur, s * 100, MAX_PROFIT * (t - prev_time));
             }
             cur++;
             prev_time = t;
@@ -112,19 +125,20 @@ void testcase() {
     
     for (int i = 0 ; i < n ; i++) {
         // Compiler is fucking stupid and won't accept anything without these extra variables
-        int fromi = from[i];
-        int from = offset_to[fromi] + (int) times_at[fromi][d[i]];
-        int toi = to[i];
-        auto lol1 = times_at[toi];
-        auto lol2 = lol1[a[i]];
-        int to = (int) offset_to[toi] + lol2;
+        int from = offset_to[bookings[i].s] + times_at[bookings[i].s][bookings[i].d];
+        int to = offset_to[bookings[i].t] + times_at[bookings[i].t][bookings[i].a];
         
-        adder.add_edge(from, to, 1, MAX_PROFIT * (a[i] - d[i]) - p[i]);
+        adder.add_edge(from, to, 1, MAX_PROFIT * (bookings[i].a - bookings[i].d) - bookings[i].p);
     }
     
-    int flow = boost::push_relabel_max_flow(G, src, sink);
+    // int flow = boost::push_relabel_max_flow(G, src, sink);
     boost::successive_shortest_path_nonnegative_weights(G, src, sink);
     int cost = boost::find_flow_cost(G);
+    int flow = 0;
+    out_edge_it e, eend;
+    for(boost::tie(e, eend) = boost::out_edges(boost::vertex(src,G), G); e != eend; ++e) {
+        flow += c_map[*e] - rc_map[*e];
+    }
     
     cout << MAX_PROFIT * MAX_TIME * flow - cost << endl;
 }
